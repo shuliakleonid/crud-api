@@ -7,7 +7,14 @@ import os from 'node:os'
 import process from 'node:process'
 
 const totalCPUs = os.cpus().length;
-const PORT = 3000
+const PORT = 5000
+
+const targetUrls = [
+  `http://localhost:4001`,
+  `http://localhost:4002`,
+  `http://localhost:4003`,
+  `http://localhost:4004`
+];
 
 // Define the User interface
 interface User {
@@ -44,19 +51,36 @@ if (cluster.isPrimary) {
   console.log(`Number of CPUs is ${totalCPUs}`);
 
   // Fork workers.
-  for (let i = 0; i < totalCPUs; i++) {
+  for (let i = 0; i < totalCPUs - 1; i++) {
     cluster.fork();
+
+
+//   // Create the load balancer
+//   const proxy = httpProxyMiddleware(['/api'], {
+//     target: targetUrls[0],
+//     changeOrigin: true,
+//     ws: true,
+//     router: function() {
+//       // Use the Round-robin algorithm to select the next target URL
+//       const targetUrl = targetUrls[i % targetUrls.length];
+//       i++;
+//       return targetUrl;
+//     }
+//   });
   }
 
-  cluster.on('exit', (worker, code, signal) => {
-    console.log(`worker ${worker.process.pid} died`);
-    console.log("Let's fork another worker!");
-    cluster.fork();
-  })
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`worker ${worker.process.pid} died. Code : ${code}`);
+      console.log("Let's fork another worker!");
+      cluster.fork();
+    })
+
+
 } else {
   startApp();
   console.log(`Worker ${process.pid} started`);
 }
+
 
 function startApp() {
 
